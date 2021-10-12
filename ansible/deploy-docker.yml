@@ -1,0 +1,13 @@
+---
+- hosts: server
+  remote_user: ec2-user
+
+  tasks:
+  - name: Create containers {{ tag }}
+    docker_container:
+      name: "flask"
+      image: "prasadtakale/assignment:flask-v{{ tag }}"
+      pull: yes
+      state: started
+      ports:
+        - "5000:5000"
