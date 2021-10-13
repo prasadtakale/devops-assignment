@@ -1,0 +1,49 @@
+pipeline {
+  environment {
+    imagename = "prasadtakale/assignment"
+    registryCredential = 'dockerhub'
+    dockerImage = ''
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git([url: 'https://github.com/prasadtakale/devops-assignment.git', branch: 'main'])
+
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          sh "ls -ltrh;pwd"
+          dockerImage =  docker.build("$imagename:flask-v${env.BUILD_ID}", "./app")
+        }
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push("flask-v$BUILD_NUMBER")
+             dockerImage.push('latest')
+
+          }
+        }
+      }
+    }
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $imagename:flask-v${env.BUILD_ID}"
+         sh "docker rmi $imagename:latest"
+
+      }
+    }
+    stage('EC2') {
+      steps{
+          sh "ls;pwd"
+          sh "ansible-playbook ansible/deploy-docker.yml --extra-vars tag=${env.BUILD_ID} -i ansible/server"
+
+      }
+    }
+  }
+}
